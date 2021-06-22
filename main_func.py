@@ -17,7 +17,7 @@ DEFAULT_HIDDEN_SIZE = 16
 DEFAULT_LEARN_RATE = 5e-5
 
 parser = argparse.ArgumentParser(description="Train the models.")
-parser.add_argument('-e', '--epochs', type=int, default = 1000,
+parser.add_argument('-e', '--epochs', type=int, default = 5,
                     help='number of epochs.')
 parser.add_argument('-b', '--batch', type=int,
                     dest='batch_size', default=DEFAULT_BATCH_SIZE,
@@ -53,7 +53,7 @@ parser.add_argument('--samples', default=10,
 parser.add_argument('-m', '--model', default='sahp',
                     type=str, choices=['sahp'],
                     help='choose which models to train.')
-parser.add_argument('-t', '--task', type=str, default='retweet',
+parser.add_argument('-t', '--task', type=str, default='synthetic',
                     help = 'task type')
 args = parser.parse_args()
 print(args)
@@ -63,13 +63,14 @@ if torch.cuda.is_available():
 else:
     USE_CUDA = False
 
-SYNTH_DATA_FILES = glob.glob("../data/simulated/*.pkl")
+SYNTH_DATA_FILES = glob.glob("data/simulated/*.pkl")
 TYPE_SIZE_DICT = {'retweet': 3, 'bookorder':8, 'meme':5000, 'mimic':75, 'stackOverflow':22,
                   'synthetic':2}
 REAL_WORLD_TASKS = list(TYPE_SIZE_DICT.keys())[:5]
 SYNTHETIC_TASKS = list(TYPE_SIZE_DICT.keys())[5:]
 
 start_time = time.time()
+print(SYNTH_DATA_FILES)
 
 if __name__ == '__main__':
     cuda_num = 'cuda:{}'.format(args.cuda)
@@ -78,7 +79,6 @@ if __name__ == '__main__':
 
     process_dim = TYPE_SIZE_DICT[args.task]
     print("Loading {}-dimensional process.".format(process_dim), end=' \n')
-
     if args.task in SYNTHETIC_TASKS:
         print("Available files:")
         for i, s in enumerate(SYNTH_DATA_FILES):
