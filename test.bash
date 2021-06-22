@@ -1,8 +1,8 @@
 #!/bin/bash
 
-for lr in 0.01 0.001 0.0001
+for lr in 0.001 0.0001
 do
-for es in 0.01 0.001
+for es in 0.001 0.0001
 do
 python  main_func.py  -e 1000 -t mimic --lr $lr  --early-stop-threshold $es --lambda-l2 0.0
 done
