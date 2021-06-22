@@ -7,7 +7,7 @@ def convert_task_sub(task, sub):
     lengths_list = []
     timeintervals_list = []
 
-    file_path = '../../data/' + task + '/' + sub +'.pkl'
+    file_path = '../data/' + task + '/' + sub +'.pkl'
     with open(file_path, 'rb') as f:
         file = pickle.load(f, encoding='latin1')
         dim_process = file['dim_process']
@@ -36,7 +36,7 @@ def convert_task_sub(task, sub):
             timeintervals_list.append(np.asarray(timeintervals))
 
     print('one_seq_num: {}'.format(one_seq_num))
-    save_path = '../../data/' + task + '/' + sub +'_manifold_format.pkl'
+    save_path = '../data/' + task + '/' + sub +'_manifold_format.pkl'
     with open(save_path, "wb") as f:
         save_data_ = {'timestamps': np.asarray(timestamps_list),
                      'types': np.asarray(types_list),
@@ -46,7 +46,7 @@ def convert_task_sub(task, sub):
         pickle.dump(save_data_,f)
 
 if __name__ == '__main__':
-    task_list = ['bookorder']
+    task_list = ['retweet']
     sub_dataset = ['train', 'dev', 'test']
 
     for task in task_list:

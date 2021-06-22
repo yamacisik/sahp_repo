@@ -3,6 +3,7 @@ import datetime
 import glob
 import os
 import pickle
+import csv
 import numpy as np
 import time
 
@@ -17,7 +18,7 @@ DEFAULT_HIDDEN_SIZE = 16
 DEFAULT_LEARN_RATE = 5e-5
 
 parser = argparse.ArgumentParser(description="Train the models.")
-parser.add_argument('-e', '--epochs', type=int, default = 5,
+parser.add_argument('-e', '--epochs', type=int, default=5,
                     help='number of epochs.')
 parser.add_argument('-b', '--batch', type=int,
                     dest='batch_size', default=DEFAULT_BATCH_SIZE,
@@ -29,7 +30,7 @@ parser.add_argument('--hidden', type=int,
                     help='number of hidden units. (default: {})'.format(DEFAULT_HIDDEN_SIZE))
 parser.add_argument('--d-model', type=int, default=DEFAULT_HIDDEN_SIZE)
 parser.add_argument('--atten-heads', type=int, default=8)
-parser.add_argument('--pe', type=str,default='add',help='concat, add')
+parser.add_argument('--pe', type=str, default='add', help='concat, add')
 parser.add_argument('--nLayers', type=int, default=4)
 parser.add_argument('--dropout', type=float, default=0.1)
 parser.add_argument('--cuda', type=int, default=0)
@@ -39,7 +40,7 @@ parser.add_argument('--lambda-l2', type=float, default=3e-4,
                     help='regularization loss.')
 parser.add_argument('--dev-ratio', type=float, default=0.1,
                     help='override the size of the dev dataset.')
-parser.add_argument('--early-stop-threshold', type=float, default=1e-3,
+parser.add_argument('--early-stop-threshold', type=float, default=1e-2,
                     help='early_stop_threshold')
 parser.add_argument('--log-dir', type=str,
                     dest='log_dir', default='logs',
@@ -54,7 +55,7 @@ parser.add_argument('-m', '--model', default='sahp',
                     type=str, choices=['sahp'],
                     help='choose which models to train.')
 parser.add_argument('-t', '--task', type=str, default='synthetic',
-                    help = 'task type')
+                    help='task type')
 args = parser.parse_args()
 print(args)
 
@@ -68,8 +69,8 @@ torch.backends.cudnn.deterministic = True
 torch.manual_seed(42)
 
 SYNTH_DATA_FILES = glob.glob("data/simulated/*.pkl")
-TYPE_SIZE_DICT = {'retweet': 3, 'bookorder':8, 'meme':5000, 'mimic':75, 'stackOverflow':22,
-                  'synthetic':2}
+TYPE_SIZE_DICT = {'retweet': 3, 'bookorder': 8, 'meme': 5000, 'mimic': 75, 'stackOverflow': 22,
+                  'synthetic': 2}
 REAL_WORLD_TASKS = list(TYPE_SIZE_DICT.keys())[:5]
 SYNTHETIC_TASKS = list(TYPE_SIZE_DICT.keys())[5:]
 
@@ -90,7 +91,7 @@ if __name__ == '__main__':
 
         chosen_file_index = -1
         chosen_file = SYNTH_DATA_FILES[chosen_file_index]
-        print('chosen file:%s'+str(chosen_file))
+        print('chosen file:%s' + str(chosen_file))
 
         with open(chosen_file, 'rb') as f:
             loaded_hawkes_data = pickle.load(f)
@@ -126,9 +127,9 @@ if __name__ == '__main__':
         print("No. of event tokens in training subset:", train_seq_lengths.sum())
 
         # Define development data
-        dev_times_tensor = seq_times[train_size:train_size+dev_size]#train_size+dev_size
-        dev_seq_types = seq_types[train_size:train_size+dev_size]
-        dev_seq_lengths = seq_lengths[train_size:train_size+dev_size]
+        dev_times_tensor = seq_times[train_size:train_size + dev_size]  # train_size+dev_size
+        dev_seq_types = seq_types[train_size:train_size + dev_size]
+        dev_seq_lengths = seq_lengths[train_size:train_size + dev_size]
         print("No. of event tokens in development subset:", dev_seq_lengths.sum())
 
         test_times_tensor = seq_times[-dev_size:]
@@ -158,7 +159,7 @@ if __name__ == '__main__':
         test_seq_times, test_seq_types, test_seq_lengths, test_tmax = \
             process_loaded_sequences(test_hawkes_data, process_dim)
 
-        tmax = max([train_tmax,dev_tmax,test_tmax])
+        tmax = max([train_tmax, dev_tmax, test_tmax])
 
         train_sample_size = train_seq_times.size(0)
         print("Train sample size: {}".format(train_sample_size))
@@ -190,7 +191,6 @@ if __name__ == '__main__':
     else:
         exit()
 
-
     MODEL_TOKEN = args.model
     print("Chose models {}".format(MODEL_TOKEN))
     hidden_size = args.hidden_size
@@ -208,11 +208,17 @@ if __name__ == '__main__':
                      dev_times_tensor, dev_seq_types, dev_seq_lengths, \
                      test_times_tensor, test_seq_types, test_seq_lengths, \
                      BATCH_SIZE, EPOCHS, USE_CUDA
-            model = train_eval_sahp(params)
+            model, rmse, micro_f1,test_loss = train_eval_sahp(params)
 
     else:
         exit()
 
+    results_to_record = [str(args.task), str(args.lr), str(args.lr), str(args.early_stop_threshold),
+                         str(args.lambda_l2),str(test_loss),str(rmse),str(micro_f1) ]
+
+    with open(r'results.csv', 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(results_to_record)
 
     if args.save_model:
         # Model file dump
@@ -227,8 +233,8 @@ if __name__ == '__main__':
             MODEL_TOKEN, extra_tag,
             hidden_size, now_timestamp)
         from utils.save_model import save_model
+
         save_model(model, chosen_file, extra_tag,
                    hidden_size, now_timestamp, MODEL_TOKEN)
 
     print('Done! time elapsed %.2f sec for %d epoches' % (time.time() - start_time, EPOCHS))
-

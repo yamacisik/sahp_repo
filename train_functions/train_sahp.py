@@ -11,11 +11,12 @@ from models.sahp import SAHP
 from utils import atten_optimizer
 from utils import util
 
+
 def make_model(nLayers=6, d_model=128, atten_heads=8, dropout=0.1, process_dim=10,
-               device = 'cpu', pe='concat', max_sequence_length=4096):
+               device='cpu', pe='concat', max_sequence_length=4096):
     "helper: construct a models form hyper parameters"
 
-    model = SAHP(nLayers, d_model, atten_heads, dropout=dropout, process_dim=process_dim, device = device,
+    model = SAHP(nLayers, d_model, atten_heads, dropout=dropout, process_dim=process_dim, device=device,
                  max_sequence_length=max_sequence_length)
 
     # initialize parameters with Glorot / fan_avg
@@ -27,21 +28,22 @@ def make_model(nLayers=6, d_model=128, atten_heads=8, dropout=0.1, process_dim=1
 
 def subsequent_mask(size):
     "mask out subsequent positions"
-    atten_shape = (1,size,size)
+    atten_shape = (1, size, size)
     # np.triu: Return a copy of a matrix with the elements below the k-th diagonal zeroed.
-    mask = np.triu(np.ones(atten_shape),k=1).astype('uint8')
+    mask = np.triu(np.ones(atten_shape), k=1).astype('uint8')
     aaa = torch.from_numpy(mask) == 0
     return aaa
 
 
 class MaskBatch():
     "object for holding a batch of data with mask during training"
-    def __init__(self,src,pad, device):
+
+    def __init__(self, src, pad, device):
         self.src = src
         self.src_mask = self.make_std_mask(self.src, pad, device)
 
     @staticmethod
-    def make_std_mask(tgt,pad,device):
+    def make_std_mask(tgt, pad, device):
         "create a mask to hide padding and future input"
         # torch.cuda.set_device(device)
         tgt_mask = (tgt != pad).unsqueeze(-2)
@@ -56,6 +58,7 @@ def l1_loss(model):
         l1 = l1 + p.abs().sum()
     return l1
 
+
 def eval_sahp(batch_size, loop_range, seq_lengths, seq_times, seq_types, model, device, lambda_l1=0):
     model.eval()
     epoch_loss = 0
@@ -64,7 +67,8 @@ def eval_sahp(batch_size, loop_range, seq_lengths, seq_times, seq_types, model, 
             util.get_batch(batch_size, i_batch, model, seq_lengths, seq_times, seq_types, rnn=False)
         batch_seq_types = batch_seq_types[:, 1:]
 
-        masked_seq_types = MaskBatch(batch_seq_types,pad=model.process_dim, device=device)# exclude the first added event
+        masked_seq_types = MaskBatch(batch_seq_types, pad=model.process_dim,
+                                     device=device)  # exclude the first added event
         model.forward(batch_dt, masked_seq_types.src, masked_seq_types.src_mask)
         nll = model.compute_loss(batch_seq_times, batch_onehot)
 
@@ -76,7 +80,6 @@ def eval_sahp(batch_size, loop_range, seq_lengths, seq_times, seq_types, model, 
 
 
 def train_eval_sahp(params):
-
     args, process_dim, device, tmax, \
     train_seq_times, train_seq_types, train_seq_lengths, \
     dev_seq_times, dev_seq_types, dev_seq_lengths, \
@@ -107,14 +110,13 @@ def train_eval_sahp(params):
     dropout = args.dropout
 
     model = make_model(nLayers=args.nLayers, d_model=d_model, atten_heads=atten_heads,
-                    dropout=dropout, process_dim=process_dim, device=device, pe=args.pe,
-                    max_sequence_length=max_sequence_length + 1).to(device)
+                       dropout=dropout, process_dim=process_dim, device=device, pe=args.pe,
+                       max_sequence_length=max_sequence_length + 1).to(device)
 
     print("the number of trainable parameters: " + str(util.count_parameters(model)))
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=1e-9, weight_decay=args.lambda_l2)
     model_opt = atten_optimizer.NoamOpt(args.d_model, 1, 100, initial_lr=args.lr, optimizer=optimizer)
-
 
     ## Size of the traing dataset
     train_size = train_seq_times.size(0)
@@ -138,15 +140,16 @@ def train_eval_sahp(params):
         ## training
         random.Random(random_seeds[epoch]).shuffle(tr_loop_range)
         for i_batch in tr_loop_range:
-
             model_opt.optimizer.zero_grad()
 
             batch_onehot, batch_seq_times, batch_dt, batch_seq_types, _, _, _, batch_seq_lengths = \
-                util.get_batch(batch_size, i_batch, model, train_seq_lengths, train_seq_times, train_seq_types, rnn=False)
+                util.get_batch(batch_size, i_batch, model, train_seq_lengths, train_seq_times, train_seq_types,
+                               rnn=False)
 
             batch_seq_types = batch_seq_types[:, 1:]
 
-            masked_seq_types = MaskBatch(batch_seq_types, pad=model.process_dim, device=device)# exclude the first added even
+            masked_seq_types = MaskBatch(batch_seq_types, pad=model.process_dim,
+                                         device=device)  # exclude the first added even
             model.forward(batch_dt, masked_seq_types.src, masked_seq_types.src_mask)
             nll = model.compute_loss(batch_seq_times, batch_onehot)
 
@@ -162,6 +165,9 @@ def train_eval_sahp(params):
             epoch_train_loss += loss.detach()
 
         if epoch_train_loss < 0:
+            print('Negative Training Loss')
+            # avg_rmse, types_predict_score = \
+            #     prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_seq_types, test_size, tmax)
             break
         train_event_num = torch.sum(train_seq_lengths).float()
         print('---\nEpoch.{} Training set\nTrain Negative Log-Likelihood per event: {:5f} nats\n' \
@@ -169,13 +175,13 @@ def train_eval_sahp(params):
 
         ## dev
         dev_event_num, epoch_dev_loss = eval_sahp(batch_size, de_loop_range, dev_seq_lengths, dev_seq_times,
-                                                 dev_seq_types, model, device, args.lambda_l2)
+                                                  dev_seq_types, model, device, args.lambda_l2)
         print('Epoch.{} Devlopment set\nDev Negative Likelihood per event: {:5f} nats.\n'. \
               format(epoch, epoch_dev_loss / dev_event_num))
 
         ## test
         test_event_num, epoch_test_loss = eval_sahp(batch_size, test_loop_range, test_seq_lengths, test_seq_times,
-                                                   test_seq_types, model, device, args.lambda_l2)
+                                                    test_seq_types, model, device, args.lambda_l2)
         print('Epoch.{} Test set\nTest Negative Likelihood per event: {:5f} nats.\n'. \
               format(epoch, epoch_test_loss / test_event_num))
 
@@ -185,18 +191,20 @@ def train_eval_sahp(params):
             early_step += 1
         last_dev_loss = epoch_dev_loss / dev_event_num
 
-        if early_step >=3:
+        if early_step >= 3:
             print('Early Stopping')
             # prediction
-            avg_rmse, types_predict_score = \
-                prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_seq_types, test_size, tmax)
+            # avg_rmse, types_predict_score = \
+            #     prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_seq_types, test_size, tmax)
             break
 
-        # prediction
-        avg_rmse, types_predict_score = \
-            prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_seq_types, test_size, tmax)
-
-    return model
+    # prediction
+    avg_rmse, types_predict_score = \
+        prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_seq_types, test_size, tmax)
+    test_event_num, epoch_test_loss = eval_sahp(batch_size, test_loop_range, test_seq_lengths, test_seq_times,
+                                                test_seq_types, model, device, args.lambda_l2)
+    final_test_loss = epoch_test_loss / test_event_num
+    return model, avg_rmse, types_predict_score, final_test_loss
 
 
 def prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_seq_types, test_size, tmax):
@@ -218,11 +226,12 @@ def prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_
     delta_meth_stderr = 1 / test_size * mse_var / (4 * avg_rmse)
 
     from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
-    types_predict_score = f1_score(types_real, types_estimates, average='micro')# preferable in class imbalance
+    types_predict_score = f1_score(types_real, types_estimates, average='micro')  # preferable in class imbalance
     print("Type prediction score:", types_predict_score)
     # print("Confusion matrix:\n", confusion_matrix(types_real, types_estimates))
     model.train()
     return avg_rmse, types_predict_score
+
 
 if __name__ == "__main__":
     mode = 'train'
@@ -234,6 +243,3 @@ if __name__ == "__main__":
     else:
         pass
     print("Done!")
-
-
-
