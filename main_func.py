@@ -122,14 +122,14 @@ if __name__ == '__main__':
         print("No. of event tokens in training subset:", train_seq_lengths.sum())
 
         # Define development data
-        dev_times_tensor = seq_times[train_size:]#train_size+dev_size
-        dev_seq_types = seq_types[train_size:]
-        dev_seq_lengths = seq_lengths[train_size:]
+        dev_times_tensor = seq_times[train_size:train_size+dev_size]#train_size+dev_size
+        dev_seq_types = seq_types[train_size:train_size+dev_size]
+        dev_seq_lengths = seq_lengths[train_size:train_size+dev_size]
         print("No. of event tokens in development subset:", dev_seq_lengths.sum())
 
-        test_times_tensor = dev_times_tensor
-        test_seq_types = dev_seq_types
-        test_seq_lengths = dev_seq_lengths
+        test_times_tensor = seq_times[train_size+dev_size:]
+        test_seq_types = seq_times[train_size+dev_size:]
+        test_seq_lengths = seq_times[train_size+dev_size:]
         print("No. of event tokens in test subset:", test_seq_lengths.sum())
 
     elif args.task in REAL_WORLD_TASKS:
