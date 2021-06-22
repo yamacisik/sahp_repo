@@ -63,6 +63,10 @@ if torch.cuda.is_available():
 else:
     USE_CUDA = False
 
+torch.backends.cudnn.benchmark = False
+torch.manual_seed(42)
+torch.use_deterministic_algorithms(True)
+
 SYNTH_DATA_FILES = glob.glob("data/simulated/*.pkl")
 TYPE_SIZE_DICT = {'retweet': 3, 'bookorder':8, 'meme':5000, 'mimic':75, 'stackOverflow':22,
                   'synthetic':2}

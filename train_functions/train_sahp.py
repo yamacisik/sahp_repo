@@ -127,13 +127,16 @@ def train_eval_sahp(params):
     last_dev_loss = 0.0
     early_step = 0
 
+    random_seeds = list(range(0, 1000))
+    random.Random(42).shuffle(random_seeds)
+
     model.train()
     for epoch in range(epoch_num):
         epoch_train_loss = 0.0
         print('Epoch {} starts '.format(epoch))
 
         ## training
-        random.shuffle(tr_loop_range)
+        random.Random(random_seeds[epoch]).shuffle(tr_loop_range)
         for i_batch in tr_loop_range:
 
             model_opt.optimizer.zero_grad()
@@ -152,10 +155,10 @@ def train_eval_sahp(params):
             loss.backward()
             model_opt.optimizer.step()
 
-            if i_batch %50 == 0:
-                batch_event_num = torch.sum(batch_seq_lengths).float()
-                print('Epoch {} Batch {}: Negative Log-Likelihood per event: {:5f} nats' \
-                      .format(epoch, i_batch, loss.item()/ batch_event_num))
+            # if i_batch %50 == 0:
+            #     batch_event_num = torch.sum(batch_seq_lengths).float()
+            #     print('Epoch {} Batch {}: Negative Log-Likelihood per event: {:5f} nats' \
+            #           .format(epoch, i_batch, loss.item()/ batch_event_num))
             epoch_train_loss += loss.detach()
 
         if epoch_train_loss < 0:
@@ -184,6 +187,9 @@ def train_eval_sahp(params):
 
         if early_step >=3:
             print('Early Stopping')
+            # prediction
+            avg_rmse, types_predict_score = \
+                prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_seq_types, test_size, tmax)
             break
 
         # prediction
