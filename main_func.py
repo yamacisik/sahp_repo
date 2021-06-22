@@ -127,9 +127,11 @@ if __name__ == '__main__':
         dev_seq_lengths = seq_lengths[train_size:train_size+dev_size]
         print("No. of event tokens in development subset:", dev_seq_lengths.sum())
 
-        test_times_tensor = seq_times[train_size+dev_size:]
-        test_seq_types = seq_times[train_size+dev_size:]
-        test_seq_lengths = seq_times[train_size+dev_size:]
+        test_times_tensor = seq_times[-dev_size:]
+        test_seq_types = seq_types[-dev_size:]
+        test_seq_lengths = seq_lengths[-dev_size:]
+        print(test_seq_lengths.size())
+
         print("No. of event tokens in test subset:", test_seq_lengths.sum())
 
     elif args.task in REAL_WORLD_TASKS:
