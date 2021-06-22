@@ -1,2 +1,2 @@
 Dataset,Learning Rate,Early Step Threshold,L2 Reg,Test Loss,RMSE,Micro F-1
-synthetic,5e-05,5e-05,0.01,0.0003,"tensor(1.7471, device='cuda:0')",26.64783016782278,0.5025
+,,,,,,

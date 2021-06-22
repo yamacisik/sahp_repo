@@ -213,8 +213,8 @@ if __name__ == '__main__':
     else:
         exit()
 
-    results_to_record = [str(args.task), str(args.lr), str(args.lr), str(args.early_stop_threshold),
-                         str(args.lambda_l2),str(test_loss),str(rmse),str(micro_f1) ]
+    results_to_record = [str(args.task), str(args.lr), str(args.early_stop_threshold),
+                         str(args.lambda_l2),str(test_loss.item()),str(rmse),str(micro_f1) ]
 
     with open(r'results.csv', 'a', newline='') as f:
         writer = csv.writer(f)
