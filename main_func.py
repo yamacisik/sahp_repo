@@ -139,9 +139,9 @@ if __name__ == '__main__':
         print("No. of event tokens in test subset:", test_seq_lengths.sum())
 
     elif args.task in REAL_WORLD_TASKS:
-        train_path = '../data/' + args.task + '/train_manifold_format.pkl'
-        dev_path = '../data/' + args.task + '/dev_manifold_format.pkl'
-        test_path = '../data/' + args.task + '/test_manifold_format.pkl'
+        train_path = 'data/' + args.task + '/train_manifold_format.pkl'
+        dev_path = 'data/' + args.task + '/dev_manifold_format.pkl'
+        test_path = 'data/' + args.task + '/test_manifold_format.pkl'
 
         chosen_file = args.task
 
