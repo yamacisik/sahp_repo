@@ -39,7 +39,7 @@ parser.add_argument('--lambda-l2', type=float, default=3e-4,
                     help='regularization loss.')
 parser.add_argument('--dev-ratio', type=float, default=0.1,
                     help='override the size of the dev dataset.')
-parser.add_argument('--early-stop-threshold', type=float, default=1e-2,
+parser.add_argument('--early-stop-threshold', type=float, default=1e-3,
                     help='early_stop_threshold')
 parser.add_argument('--log-dir', type=str,
                     dest='log_dir', default='logs',
