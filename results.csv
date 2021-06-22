@@ -1,3 +1,1 @@
 Dataset,Learning Rate,Early Step Threshold,L2 Reg,Test Loss,RMSE,Micro F-1
-,,,,,,
-synthetic,5e-05,0.01,0.0003,1.8295060396194458,25.634100965476915,0.4725
