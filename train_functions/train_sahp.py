@@ -218,7 +218,7 @@ def prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_
         incr_reals = [incr_real.item() for incr_real in incr_reals]
         types_real = [types_rl.item() for types_rl in types_real]
         types_estimates = [types_esti.item() for types_esti in types_estimates]
-
+        incr_reals = np.asarray(incr_reals)
     incr_reals += 1e-5
     incr_errors = ((incr_estimates - incr_reals) / incr_reals) ** 2  # , normalization, np.abs,
     avg_rmse = np.sqrt(np.mean(incr_errors), dtype=np.float64)
