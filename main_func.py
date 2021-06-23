@@ -6,6 +6,7 @@ import pickle
 import csv
 import numpy as np
 import time
+import random
 
 import torch
 from torch import autograd
@@ -59,14 +60,24 @@ parser.add_argument('-t', '--task', type=str, default='synthetic',
 args = parser.parse_args()
 print(args)
 
-if torch.cuda.is_available():
-    USE_CUDA = True
-else:
-    USE_CUDA = False
+# ------Reproducibility-------
 
-# torch.backends.cudnn.benchmark = False
-# torch.backends.cudnn.deterministic = True
 torch.manual_seed(42)
+random.seed(42)
+np.random.seed(42)
+use_cuda = torch.cuda.is_available()
+if use_cuda:
+    device = 'cuda'
+    # torch.set_default_tensor_type(cuda_tensor)
+    torch.cuda.manual_seed(seed=args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+else:
+    # torch.set_default_tensor_type(cpu_tensor)
+    device = 'cpu'
+
+# ------Reproducibility-------
 
 SYNTH_DATA_FILES = glob.glob("data/simulated/*.pkl")
 TYPE_SIZE_DICT = {'retweet': 3, 'bookorder': 8, 'meme': 5000, 'mimic': 75, 'stackOverflow': 22,
@@ -79,7 +90,7 @@ print(SYNTH_DATA_FILES)
 
 if __name__ == '__main__':
     cuda_num = 'cuda:{}'.format(args.cuda)
-    device = torch.device(cuda_num if USE_CUDA else 'cpu')
+    device = torch.device(cuda_num if use_cuda else 'cpu')
     print("Training on device {}".format(device))
 
     process_dim = TYPE_SIZE_DICT[args.task]
@@ -207,14 +218,14 @@ if __name__ == '__main__':
                      train_times_tensor, train_seq_types, train_seq_lengths, \
                      dev_times_tensor, dev_seq_types, dev_seq_lengths, \
                      test_times_tensor, test_seq_types, test_seq_lengths, \
-                     BATCH_SIZE, EPOCHS, USE_CUDA
-            model, rmse, micro_f1,test_loss = train_eval_sahp(params)
+                     BATCH_SIZE, EPOCHS, use_cuda
+            model, rmse, micro_f1, test_loss = train_eval_sahp(params)
 
     else:
         exit()
 
     results_to_record = [str(args.task), str(args.lr), str(args.early_stop_threshold),
-                         str(args.lambda_l2),str(test_loss.item()),str(rmse),str(micro_f1) ]
+                         str(args.lambda_l2), str(test_loss.item()), str(rmse), str(micro_f1)]
 
     with open(r'results.csv', 'a', newline='') as f:
         writer = csv.writer(f)
@@ -232,9 +243,11 @@ if __name__ == '__main__':
         filename_base = "{}-{}_hidden{}-{}".format(
             MODEL_TOKEN, extra_tag,
             hidden_size, now_timestamp)
-        from utils.save_model import save_model
-
-        save_model(model, chosen_file, extra_tag,
-                   hidden_size, now_timestamp, MODEL_TOKEN)
+        model_filepath = os.path.join(SAVED_MODELS_PATH, filename_base)
+        torch.save(model.state_dict(), model_filepath)
+        # from utils.save_model import save_model
+        # 
+        # save_model(model, chosen_file, extra_tag,
+        #            hidden_size, now_timestamp, MODEL_TOKEN)
 
     print('Done! time elapsed %.2f sec for %d epoches' % (time.time() - start_time, EPOCHS))
