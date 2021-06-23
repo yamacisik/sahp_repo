@@ -75,8 +75,9 @@ def predict_test(model, seq_times, seq_types, seq_lengths, pad, device='cpu',
         types_estimates.append(est_type)
 
     incr_real = np.asarray(incr_real)
-    incr_errors = np.asarray(incr_errors)
+    incr_estimates = np.asarray(incr_estimates)
     types_real = np.asarray(types_real)
     types_estimates = np.asarray(types_estimates)
+
     return incr_estimates,incr_real, types_real, types_estimates
 
