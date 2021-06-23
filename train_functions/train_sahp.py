@@ -12,7 +12,7 @@ from utils import atten_optimizer
 from utils import util
 
 
-def make_model(nLayers=6, d_model=128, atten_heads=8, dropout=0.1, process_dim=10,
+def make_model(nLayers=4, d_model=16, atten_heads=8, dropout=0.1, process_dim=2,
                device='cpu', pe='concat', max_sequence_length=4096):
     "helper: construct a models form hyper parameters"
 
@@ -130,7 +130,7 @@ def train_eval_sahp(params):
     early_step = 0
 
     random_seeds = list(range(0, 1000))
-    random.Random(42).shuffle(random_seeds)
+    random.shuffle(random_seeds)
 
     model.train()
     for epoch in range(epoch_num):
@@ -199,7 +199,7 @@ def train_eval_sahp(params):
             break
 
     # prediction
-    avg_rmse, types_predict_score = \
+    avg_rmse, types_predict_score, results = \
         prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_seq_types, test_size, tmax)
     test_event_num, epoch_test_loss = eval_sahp(batch_size, test_loop_range, test_seq_lengths, test_seq_times,
                                                 test_seq_types, model, device, args.lambda_l2)
@@ -211,14 +211,16 @@ def prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_
     model.eval()
     from utils import evaluation
     test_data = (test_seq_times, test_seq_types, test_seq_lengths)
-    incr_estimates, incr_errors, types_real, types_estimates = \
+    incr_estimates, incr_reals, types_real, types_estimates = \
         evaluation.predict_test(model, *test_data, pad=model.process_dim, device=device,
                                 hmax=tmax, use_jupyter=False, rnn=False)
     if device != 'cpu':
-        incr_errors = [incr_err.item() for incr_err in incr_errors]
+        incr_reals = [incr_real.item() for incr_real in incr_reals]
         types_real = [types_rl.item() for types_rl in types_real]
         types_estimates = [types_esti.item() for types_esti in types_estimates]
 
+    incr_reals += 1e-5
+    incr_errors = ((incr_estimates - incr_reals) / incr_reals) ** 2  # , normalization, np.abs,
     avg_rmse = np.sqrt(np.mean(incr_errors), dtype=np.float64)
     print("rmse", avg_rmse)
     mse_var = np.var(incr_errors, dtype=np.float64)
@@ -230,7 +232,7 @@ def prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_
     print("Type prediction score:", types_predict_score)
     # print("Confusion matrix:\n", confusion_matrix(types_real, types_estimates))
     model.train()
-    return avg_rmse, types_predict_score
+    return avg_rmse, types_predict_score, (types_real, types_estimates, incr_reals, incr_estimates)
 
 
 if __name__ == "__main__":
