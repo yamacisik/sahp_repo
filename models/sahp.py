@@ -10,7 +10,7 @@ import numpy as np
 import math, copy
 
 from models.embedding.event_type import TypeEmbedding
-from models.embedding.position import PositionalEmbedding,BiasedPositionalEmbedding
+from models.embedding.position import PositionalEmbedding, BiasedPositionalEmbedding
 from models.embedding.event_embedding import EventEmbedding
 from models.attention.multi_head import MultiHeadedAttention
 from models.utils.sublayer import SublayerConnection
@@ -19,6 +19,7 @@ from models.base import SeqGenerator, predict_from_hidden
 from models.utils.gelu import GELU
 
 from matplotlib import pyplot as plt
+
 
 class SAHP(nn.Module):
     "Generic N layer attentive Hawkes with masking"
@@ -34,7 +35,7 @@ class SAHP(nn.Module):
 
         self.d_model = d_model
         self.type_emb = TypeEmbedding(self.input_size, d_model, padding_idx=self.process_dim)
-        self.position_emb = BiasedPositionalEmbedding(d_model=d_model,max_len = max_sequence_length)
+        self.position_emb = BiasedPositionalEmbedding(d_model=d_model, max_len=max_sequence_length)
 
         self.attention = MultiHeadedAttention(h=atten_heads, d_model=self.d_model)
         self.feed_forward = PositionwiseFeedForward(d_model=self.d_model, d_ff=self.d_model * 4, dropout=dropout)
@@ -54,12 +55,12 @@ class SAHP(nn.Module):
 
         self.decay_layer = nn.Sequential(
             nn.Linear(self.d_model, self.d_model, bias=True)
-            ,nn.Softplus(beta=10.0)
+            , nn.Softplus(beta=10.0)
         )
 
         self.intensity_layer = nn.Sequential(
-            nn.Linear(self.d_model, self.process_dim, bias = True)
-            ,nn.Softplus(beta=1.)
+            nn.Linear(self.d_model, self.process_dim, bias=True)
+            , nn.Softplus(beta=1.)
         )
 
     def state_decay(self, converge_point, start_point, omega, duration_t):
@@ -69,7 +70,7 @@ class SAHP(nn.Module):
 
     def forward(self, seq_dt, seq_types, src_mask):
         type_embedding = self.type_emb(seq_types) * math.sqrt(self.d_model)  #
-        position_embedding = self.position_emb(seq_types,seq_dt)
+        position_embedding = self.position_emb(seq_types, seq_dt)
 
         x = type_embedding + position_embedding
         for i in range(self.nLayers):
@@ -82,7 +83,7 @@ class SAHP(nn.Module):
         self.converge_point = self.converge_layer(embed_info)
         self.omega = self.decay_layer(embed_info)
 
-    def compute_loss(self, seq_times, seq_onehot_types,n_mc_samples = 20):
+    def compute_loss(self, seq_times, seq_onehot_types, n_mc_samples=20):
         """
         Compute the negative log-likelihood as a loss function.
 
@@ -102,29 +103,27 @@ class SAHP(nn.Module):
         dt_seq = seq_times[:, 1:] - seq_times[:, :-1]
         cell_t = self.state_decay(self.converge_point, self.start_point, self.omega, dt_seq[:, :, None])
 
-
         n_batch = seq_times.size(0)
         n_times = seq_times.size(1) - 1
         device = dt_seq.device
         # Get the intensity process
         intens_at_evs = self.intensity_layer(cell_t)
         intens_at_evs = nn.utils.rnn.pad_sequence(
-            intens_at_evs, padding_value=1.0,batch_first=True)  # pad with 0 to get rid of the non-events, log1=0
+            intens_at_evs, padding_value=1.0, batch_first=True)  # pad with 0 to get rid of the non-events, log1=0
         log_intensities = intens_at_evs.log()  # log intensities
         seq_mask = seq_onehot_types[:, 1:]
         log_sum = (log_intensities * seq_mask).sum(dim=(2, 1))  # shape batch
 
-
-        taus = torch.rand(n_batch, n_times, 1, n_mc_samples).to(device)# self.process_dim replaced 1
+        taus = torch.rand(n_batch, n_times, 1, n_mc_samples).to(device)  # self.process_dim replaced 1
         taus = dt_seq[:, :, None, None] * taus  # inter-event times samples)
 
         cell_tau = self.state_decay(
-            self.converge_point[:,:,:,None],
-            self.start_point[:,:,:,None],
-            self.omega[:,:,:,None],
+            self.converge_point[:, :, :, None],
+            self.start_point[:, :, :, None],
+            self.omega[:, :, :, None],
             taus)
         cell_tau = cell_tau.transpose(2, 3)
-        intens_at_samples = self.intensity_layer(cell_tau).transpose(2,3)
+        intens_at_samples = self.intensity_layer(cell_tau).transpose(2, 3)
         intens_at_samples = nn.utils.rnn.pad_sequence(
             intens_at_samples, padding_value=0.0, batch_first=True)
 
@@ -136,9 +135,8 @@ class SAHP(nn.Module):
         res = torch.sum(- log_sum + integral_)
         return res
 
-
     def read_predict(self, seq_times, seq_types, seq_lengths, pad, device,
-                     hmax = 40, n_samples=1000, plot = False, print_info = False):
+                     hmax=40, n_samples=1000, plot=False, print_info=False):
         """
         Read an event sequence and predict the next event time and type.
 
@@ -162,12 +160,12 @@ class SAHP(nn.Module):
         next_t = seq_times[length]
 
         dt_seq_valid = dt_seq[:length]  # exclude the last timestamp
-        dt_seq_used = dt_seq_valid[:length-1]  # exclude the last timestamp
+        dt_seq_used = dt_seq_valid[:length - 1]  # exclude the last timestamp
         next_dt = dt_seq_valid[length - 1]
 
         seq_types_valid = seq_types[1:length + 1]  # include the first added event
         from train_functions.train_sahp import MaskBatch
-        last_type = seq_types[length-1]
+        last_type = seq_types[length - 1]
         next_type = seq_types[length]
         if next_type == self.process_dim:
             print('Error: wrong next event type')
@@ -175,17 +173,16 @@ class SAHP(nn.Module):
         seq_types_valid_masked = MaskBatch(seq_types_used[None, :], pad, device)
         seq_types_used_mask = seq_types_valid_masked.src_mask
 
-
         with torch.no_grad():
             self.forward(dt_seq_used, seq_types_used, seq_types_used_mask)
 
             if self.omega.shape[1] == 0:  # only one element
-                estimate_dt, next_dt, error_dt, next_type, estimate_type = 0,0,0,0,0
+                estimate_dt, next_dt, error_dt, next_type, estimate_type = 0, 0, 0, 0, 0
                 return estimate_dt, next_dt, error_dt, next_type, estimate_type
 
-            elif self.omega.shape[1] == 1: # only one element
+            elif self.omega.shape[1] == 1:  # only one element
                 converge_point = torch.squeeze(self.converge_point)[None, :]
-                start_point = torch.squeeze(self.start_point)[None,:]
+                start_point = torch.squeeze(self.start_point)[None, :]
                 omega = torch.squeeze(self.omega)[None, :]
             else:
                 converge_point = torch.squeeze(self.converge_point)[-1, :]
@@ -204,10 +201,9 @@ class SAHP(nn.Module):
                       .format(next_t.item(), next_type.item(), next_dt.item()))
 
             return predict_from_hidden(self, h_t_vals, dt_vals, next_dt, next_type,
-                                            plot, hmax, n_samples, print_info)
+                                       plot, hmax, n_samples, print_info)
 
-
-    def plot_estimated_intensity(self,timestamps, n_points=10000, plot_nodes=None,
+    def plot_estimated_intensity(self, timestamps, n_points=10000, plot_nodes=None,
                                  t_min=None, t_max=None,
                                  intensity_track_step=None, max_jumps=None,
                                  show=True, ax=None, qqplot=None):
@@ -220,15 +216,16 @@ class SAHP(nn.Module):
         dt_seq = seq_times[1:] - seq_times[:-1]
 
         seq_types = torch.from_numpy(event_types)
-        seq_types = seq_types.long()# convert from floattensor to longtensor
+        seq_types = seq_types.long()  # convert from floattensor to longtensor
 
         intens_at_evs_lst = []
         sample_times = np.linspace(t_min, t_max, n_points)
         for i in range(self.process_dim):
-            intens_at_samples, intens_at_evs = self.intensity_per_type(seq_types, dt_seq, sample_times, timestamps[i], type=i)
+            intens_at_samples, intens_at_evs = self.intensity_per_type(seq_types, dt_seq, sample_times, timestamps[i],
+                                                                       type=i)
             intens_at_evs_lst.append(intens_at_samples)
             if qqplot is None:
-                self._plot_tick_intensity(timestamps[i], sample_times, intens_at_samples,intens_at_evs,
+                self._plot_tick_intensity(timestamps[i], sample_times, intens_at_samples, intens_at_evs,
                                           ax[i], i, n_points)
         if qqplot is not None:
             return intens_at_evs_lst
@@ -255,24 +252,23 @@ class SAHP(nn.Module):
             cell_t = self.state_decay(converge_point,
                                       start_point,
                                       omega,
-                                      dt_seq[:, None])#
+                                      dt_seq[:, None])  #
 
             intens_at_evs = torch.squeeze(self.intensity_layer(cell_t)).numpy()
             intens_at_evs = intens_at_evs[type_idx, type]
 
-
             event_idx = -1
             for t_time in sample_times:
                 if t_time < timestamps[0]:
-                    intens_at_samples.append(0)#np.zeros(self.process_dim)
+                    intens_at_samples.append(0)  # np.zeros(self.process_dim)
                     continue
 
                 if event_idx < onetype_length - 1 and t_time >= timestamps[event_idx + 1]:
                     event_idx += 1
                     # print(omega)
 
-                aaa=dt_seq[:event_idx+1]
-                bbb=seq_types[:event_idx+1]
+                aaa = dt_seq[:event_idx + 1]
+                bbb = seq_types[:event_idx + 1]
 
                 event_types_masked = MaskBatch(bbb[None, :], pad=self.process_dim, device='cpu')
                 event_types_mask = event_types_masked.src_mask
@@ -284,22 +280,21 @@ class SAHP(nn.Module):
                 omega = torch.squeeze(self.omega)
 
                 if omega.ndim == 2:
-                    omega = omega[-1,:]
-                    converge_point = converge_point [-1,:]
-                    start_point = start_point[-1,:]
+                    omega = omega[-1, :]
+                    converge_point = converge_point[-1, :]
+                    start_point = start_point[-1, :]
                 cell_t = self.state_decay(converge_point,
                                           start_point,
                                           omega,
-                                          t_time - timestamps[event_idx])#
+                                          t_time - timestamps[event_idx])  #
 
                 xxx = self.intensity_layer(cell_t).numpy()
                 intens_at_samples.append(xxx[type])
 
-
             return intens_at_samples, intens_at_evs
 
     def _plot_tick_intensity(self, timestamps_i, sample_times, intensity_i, intens_at_evs,
-                             ax, label, n_points):#
+                             ax, label, n_points):  #
         x_intensity = np.linspace(sample_times.min(), sample_times.max(), n_points)
         y_intensity = intensity_i
         ax.plot(x_intensity, y_intensity)
@@ -310,7 +305,7 @@ class SAHP(nn.Module):
 class SAHPGen(SeqGenerator):
     # sequence generator for the SAHP model
 
-    def __init__(self,model, record_intensity = True):
+    def __init__(self, model, record_intensity=True):
         super(SAHPGen, self).__init__(model, record_intensity)
         self.lbda_ub = []
 
