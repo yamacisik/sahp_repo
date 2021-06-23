@@ -57,14 +57,16 @@ parser.add_argument('-m', '--model', default='sahp',
                     help='choose which models to train.')
 parser.add_argument('-t', '--task', type=str, default='synthetic',
                     help='task type')
+parser.add_argument('-seed', '--seed', type=int, default=42,
+                    help='seed')
 args = parser.parse_args()
 print(args)
 
 # ------Reproducibility-------
 
-torch.manual_seed(42)
-random.seed(42)
-np.random.seed(42)
+torch.manual_seed(args.seed)
+random.seed(args.seed)
+np.random.seed(args.seed)
 use_cuda = torch.cuda.is_available()
 if use_cuda:
     device = 'cuda'
@@ -246,7 +248,7 @@ if __name__ == '__main__':
         model_filepath = os.path.join(SAVED_MODELS_PATH, filename_base)
         torch.save(model.state_dict(), model_filepath)
         # from utils.save_model import save_model
-        # 
+        #
         # save_model(model, chosen_file, extra_tag,
         #            hidden_size, now_timestamp, MODEL_TOKEN)
 
