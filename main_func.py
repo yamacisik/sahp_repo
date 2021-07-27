@@ -19,7 +19,7 @@ DEFAULT_HIDDEN_SIZE = 16
 DEFAULT_LEARN_RATE = 5e-5
 
 parser = argparse.ArgumentParser(description="Train the models.")
-parser.add_argument('-e', '--epochs', type=int, default=1000,
+parser.add_argument('-e', '--epochs', type=int, default=2,
                     help='number of epochs.')
 parser.add_argument('-b', '--batch', type=int,
                     dest='batch_size', default=DEFAULT_BATCH_SIZE,
@@ -56,6 +56,8 @@ parser.add_argument('-m', '--model', default='sahp',
                     type=str, choices=['sahp'],
                     help='choose which models to train.')
 parser.add_argument('-t', '--task', type=str, default='synthetic',
+                    help='task type')
+parser.add_argument('-st', '--synth_task', type=str, default=0,
                     help='task type')
 parser.add_argument('-seed', '--seed', type=int, default=42,
                     help='seed')
@@ -102,13 +104,14 @@ if __name__ == '__main__':
         for i, s in enumerate(SYNTH_DATA_FILES):
             print("{:<8}{:<8}".format(i, s))
 
-        chosen_file_index = 0
+        chosen_file_index = args.synth_task
         chosen_file = SYNTH_DATA_FILES[chosen_file_index]
         print('chosen file:%s' + str(chosen_file))
 
         with open(chosen_file, 'rb') as f:
             loaded_hawkes_data = pickle.load(f)
-
+        chosen_file_name = str.split(chosen_file,"\\")[-1]
+        print(chosen_file_name)
         # mu = loaded_hawkes_data['mu']
         # alpha = loaded_hawkes_data['alpha']
         # decay = loaded_hawkes_data['decay']
@@ -225,8 +228,8 @@ if __name__ == '__main__':
 
     else:
         exit()
-
-    results_to_record = [str(args.task), str(args.lr), str(args.early_stop_threshold),
+    data_set_name = str(args.task) if args.task not in SYNTHETIC_TASKS else chosen_file_name
+    results_to_record = [data_set_name, str(args.lr), str(args.early_stop_threshold),
                          str(args.lambda_l2), str(test_loss.item()), str(rmse), str(micro_f1)]
 
     with open(r'results.csv', 'a', newline='') as f:
@@ -241,7 +244,7 @@ if __name__ == '__main__':
 
         date_format = "%Y%m%d-%H%M%S"
         now_timestamp = datetime.datetime.now().strftime(date_format)
-        extra_tag = "{}".format(args.task)
+        extra_tag = "{}".format(data_set_name)
         filename_base = "{}-{}_hidden{}-{}".format(
             MODEL_TOKEN, extra_tag,
             hidden_size, now_timestamp)
