@@ -34,7 +34,7 @@ def process_loaded_sequences(loaded_hawkes_data: dict, process_dim: int,return_i
 
     event_times_list = loaded_hawkes_data['timestamps']
     event_types_list = loaded_hawkes_data['types']
-    event_intensities_list = loaded_hawkes_data['intensities']
+    event_intensities_list = loaded_hawkes_data['intensities'] if 'intensities'  in loaded_hawkes_data.keys() else []
 
     if process_dim ==1:
         event_times_list = [torch.from_numpy(e[0]) for e in event_times_list]
@@ -56,8 +56,8 @@ def process_loaded_sequences(loaded_hawkes_data: dict, process_dim: int,return_i
     seq_times = nn.utils.rnn.pad_sequence(event_times_list, batch_first=True, padding_value=tmax).float()
     seq_times = torch.cat((torch.zeros_like(seq_times[:, :1]), seq_times), dim=1) # add 0 to the sequence beginning
 
-    seq_intensities = nn.utils.rnn.pad_sequence(event_intensities_list, batch_first=True, padding_value=tmax).float()
-    seq_intensities = torch.cat((torch.zeros_like(seq_intensities[:, :1]), seq_intensities), dim=1) # add 0 to the sequence beginning
+    # seq_intensities = nn.utils.rnn.pad_sequence(event_intensities_list, batch_first=True, padding_value=tmax).float()
+    # seq_intensities = torch.cat((torch.zeros_like(seq_intensities[:, :1]), seq_intensities), dim=1) # add 0 to the sequence beginning
 
 
     seq_types = nn.utils.rnn.pad_sequence(event_types_list, batch_first=True, padding_value=process_dim)

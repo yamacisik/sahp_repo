@@ -108,6 +108,7 @@ class SAHP(nn.Module):
         device = dt_seq.device
         # Get the intensity process
         intens_at_evs = self.intensity_layer(cell_t)
+        print(intens_at_evs.shape)
         intens_at_evs = nn.utils.rnn.pad_sequence(
             intens_at_evs, padding_value=1.0, batch_first=True)  # pad with 0 to get rid of the non-events, log1=0
         log_intensities = intens_at_evs.log()  # log intensities

@@ -19,7 +19,7 @@ DEFAULT_HIDDEN_SIZE = 16
 DEFAULT_LEARN_RATE = 5e-5
 
 parser = argparse.ArgumentParser(description="Train the models.")
-parser.add_argument('-e', '--epochs', type=int, default=2,
+parser.add_argument('-e', '--epochs', type=int, default=1,
                     help='number of epochs.')
 parser.add_argument('-b', '--batch', type=int,
                     dest='batch_size', default=DEFAULT_BATCH_SIZE,
@@ -119,7 +119,7 @@ if __name__ == '__main__':
         # print("Simulated Hawkes process parameters:")
         # for label, val in [("mu", mu), ("alpha", alpha), ("decay", decay), ("tmax", tmax)]:
         #     print("{:<20}{}".format(label, val))
-        process_dim = loaded_hawkes_data['process_dim']
+        process_dim = loaded_hawkes_data['process_dim'] if 'process_dim' in loaded_hawkes_data.keys() else process_dim
         seq_times, seq_types, seq_lengths, _ = process_loaded_sequences(loaded_hawkes_data, process_dim)
 
         seq_times = seq_times.to(device)
