@@ -57,7 +57,7 @@ parser.add_argument('-m', '--model', default='sahp',
                     help='choose which models to train.')
 parser.add_argument('-t', '--task', type=str, default='synthetic',
                     help='task type')
-parser.add_argument('-st', '--synth_task', type=str, default=0,
+parser.add_argument('-st', '--synth_task', type=int, default=1,
                     help='task type')
 parser.add_argument('-seed', '--seed', type=int, default=42,
                     help='seed')
