@@ -19,7 +19,7 @@ def read_syn(file_name):
     return loaded_hawkes_data,tmax
 
 
-def process_loaded_sequences(loaded_hawkes_data: dict, process_dim: int) -> Tuple[Tensor, Tensor, Tensor]:
+def process_loaded_sequences(loaded_hawkes_data: dict, process_dim: int,return_intensities = False) -> Tuple[Tensor, Tensor, Tensor]:
     """
     Preprocess synthetic Hawkes data by padding the sequences.
     Args:
@@ -34,8 +34,18 @@ def process_loaded_sequences(loaded_hawkes_data: dict, process_dim: int) -> Tupl
 
     event_times_list = loaded_hawkes_data['timestamps']
     event_types_list = loaded_hawkes_data['types']
-    event_times_list = [torch.from_numpy(e) for e in event_times_list]
-    event_types_list = [torch.from_numpy(e) for e in event_types_list]
+    event_intensities_list = loaded_hawkes_data['intensities']
+
+    if process_dim ==1:
+        event_times_list = [torch.from_numpy(e[0]) for e in event_times_list]
+        event_intensities_list = [torch.from_numpy(e) for e in event_intensities_list]
+
+        event_types_list = [torch.from_numpy(e) for e in event_types_list]
+
+    else:
+
+        event_times_list = [torch.from_numpy(e) for e in event_times_list]
+        event_types_list = [torch.from_numpy(e) for e in event_types_list]
 
     tmax = 0
     for tsr in event_times_list:
@@ -46,11 +56,18 @@ def process_loaded_sequences(loaded_hawkes_data: dict, process_dim: int) -> Tupl
     seq_times = nn.utils.rnn.pad_sequence(event_times_list, batch_first=True, padding_value=tmax).float()
     seq_times = torch.cat((torch.zeros_like(seq_times[:, :1]), seq_times), dim=1) # add 0 to the sequence beginning
 
+    seq_intensities = nn.utils.rnn.pad_sequence(event_intensities_list, batch_first=True, padding_value=tmax).float()
+    seq_intensities = torch.cat((torch.zeros_like(seq_intensities[:, :1]), seq_intensities), dim=1) # add 0 to the sequence beginning
+
+
     seq_types = nn.utils.rnn.pad_sequence(event_types_list, batch_first=True, padding_value=process_dim)
     seq_types = torch.cat(
         (process_dim*torch.ones_like(seq_types[:, :1]), seq_types), dim=1).long()# convert from floattensor to longtensor
 
-    return seq_times, seq_types, seq_lengths, tmax
+    if return_intensities:
+        return seq_times, seq_types, seq_lengths, tmax,seq_intensities
+    else:
+        return seq_times, seq_types, seq_lengths, tmax
 
 
 def one_hot_embedding(labels: Tensor, num_classes: int) -> torch.Tensor:

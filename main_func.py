@@ -30,9 +30,9 @@ parser.add_argument('--hidden', type=int,
                     dest='hidden_size', default=DEFAULT_HIDDEN_SIZE,
                     help='number of hidden units. (default: {})'.format(DEFAULT_HIDDEN_SIZE))
 parser.add_argument('--d-model', type=int, default=DEFAULT_HIDDEN_SIZE)
-parser.add_argument('--atten-heads', type=int, default=8)
+parser.add_argument('--atten-heads', type=int, default=1)
 parser.add_argument('--pe', type=str, default='add', help='concat, add')
-parser.add_argument('--nLayers', type=int, default=4)
+parser.add_argument('--nLayers', type=int, default=1)
 parser.add_argument('--dropout', type=float, default=0.1)
 parser.add_argument('--cuda', type=int, default=0)
 parser.add_argument('--train-ratio', type=float, default=0.8,
@@ -46,7 +46,7 @@ parser.add_argument('--early-stop-threshold', type=float, default=1e-2,
 parser.add_argument('--log-dir', type=str,
                     dest='log_dir', default='logs',
                     help="training logs target directory.")
-parser.add_argument('--save_model', default=False,
+parser.add_argument('--save_model', default=True,
                     help="do not save the models state dict and loss history.")
 parser.add_argument('--bias', default=False,
                     help="use bias on the activation (intensity) layer.")
@@ -102,21 +102,21 @@ if __name__ == '__main__':
         for i, s in enumerate(SYNTH_DATA_FILES):
             print("{:<8}{:<8}".format(i, s))
 
-        chosen_file_index = -1
+        chosen_file_index = 0
         chosen_file = SYNTH_DATA_FILES[chosen_file_index]
         print('chosen file:%s' + str(chosen_file))
 
         with open(chosen_file, 'rb') as f:
             loaded_hawkes_data = pickle.load(f)
 
-        mu = loaded_hawkes_data['mu']
-        alpha = loaded_hawkes_data['alpha']
-        decay = loaded_hawkes_data['decay']
+        # mu = loaded_hawkes_data['mu']
+        # alpha = loaded_hawkes_data['alpha']
+        # decay = loaded_hawkes_data['decay']
         tmax = loaded_hawkes_data['tmax']
-        print("Simulated Hawkes process parameters:")
-        for label, val in [("mu", mu), ("alpha", alpha), ("decay", decay), ("tmax", tmax)]:
-            print("{:<20}{}".format(label, val))
-
+        # print("Simulated Hawkes process parameters:")
+        # for label, val in [("mu", mu), ("alpha", alpha), ("decay", decay), ("tmax", tmax)]:
+        #     print("{:<20}{}".format(label, val))
+        process_dim = loaded_hawkes_data['process_dim']
         seq_times, seq_types, seq_lengths, _ = process_loaded_sequences(loaded_hawkes_data, process_dim)
 
         seq_times = seq_times.to(device)

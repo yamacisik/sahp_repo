@@ -79,6 +79,26 @@ def eval_sahp(batch_size, loop_range, seq_lengths, seq_times, seq_types, model, 
     return event_num, epoch_loss
 
 
+def get_attentions_sahp(batch_size, loop_range, seq_lengths, seq_times, seq_types, model, device, lambda_l1=0):
+    model.eval()
+    epoch_loss = 0
+    for i_batch in loop_range:
+        batch_onehot, batch_seq_times, batch_dt, batch_seq_types, _, _, _, batch_seq_lengths = \
+            util.get_batch(batch_size, i_batch, model, seq_lengths, seq_times, seq_types, rnn=False)
+        batch_seq_types = batch_seq_types[:, 1:]
+
+        masked_seq_types = MaskBatch(batch_seq_types, pad=model.process_dim,
+                                     device=device)  # exclude the first added event
+        model.forward(batch_dt, masked_seq_types.src, masked_seq_types.src_mask)
+        nll = model.compute_loss(batch_seq_times, batch_onehot)
+
+        loss = nll
+        epoch_loss += loss.detach()
+    event_num = torch.sum(seq_lengths).float()
+    model.train()
+    return event_num, epoch_loss
+
+
 def train_eval_sahp(params):
     args, process_dim, device, tmax, \
     train_seq_times, train_seq_types, train_seq_lengths, \
