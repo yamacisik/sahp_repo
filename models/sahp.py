@@ -108,10 +108,13 @@ class SAHP(nn.Module):
         device = dt_seq.device
         # Get the intensity process
         intens_at_evs = self.intensity_layer(cell_t)
-        print(intens_at_evs.shape)
-        intens_at_evs = nn.utils.rnn.pad_sequence(
-            intens_at_evs, padding_value=1.0, batch_first=True)  # pad with 0 to get rid of the non-events, log1=0
+        # print(intens_at_evs.shape)
+        # intens_at_evs = nn.utils.rnn.pad_sequence(
+        #     intens_at_evs, padding_value=1.0, batch_first=True)  # pad with 0 to get rid of the non-events, log1=0
+
         log_intensities = intens_at_evs.log()  # log intensities
+        log_intensities = log_intensities * seq_onehot_types[:, 1:, :].sum(dim=-1).unsqueeze(-1)
+
         seq_mask = seq_onehot_types[:, 1:]
         log_sum = (log_intensities * seq_mask).sum(dim=(2, 1))  # shape batch
 
@@ -125,8 +128,10 @@ class SAHP(nn.Module):
             taus)
         cell_tau = cell_tau.transpose(2, 3)
         intens_at_samples = self.intensity_layer(cell_tau).transpose(2, 3)
-        intens_at_samples = nn.utils.rnn.pad_sequence(
-            intens_at_samples, padding_value=0.0, batch_first=True)
+        # intens_at_samples = nn.utils.rnn.pad_sequence(
+        #     intens_at_samples, padding_value=0.0, batch_first=True)
+
+        intens_at_samples = intens_at_samples * seq_onehot_types[:, 1:, :].sum(dim=-1).unsqueeze(-1).unsqueeze(-1)
 
         total_intens_samples = intens_at_samples.sum(dim=2)  # shape batch * N * MC
         partial_integrals = dt_seq * total_intens_samples.mean(dim=2)

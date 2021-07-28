@@ -19,7 +19,7 @@ DEFAULT_HIDDEN_SIZE = 16
 DEFAULT_LEARN_RATE = 5e-5
 
 parser = argparse.ArgumentParser(description="Train the models.")
-parser.add_argument('-e', '--epochs', type=int, default=1,
+parser.add_argument('-e', '--epochs', type=int, default=1000,
                     help='number of epochs.')
 parser.add_argument('-b', '--batch', type=int,
                     dest='batch_size', default=DEFAULT_BATCH_SIZE,
@@ -30,9 +30,9 @@ parser.add_argument('--hidden', type=int,
                     dest='hidden_size', default=DEFAULT_HIDDEN_SIZE,
                     help='number of hidden units. (default: {})'.format(DEFAULT_HIDDEN_SIZE))
 parser.add_argument('--d-model', type=int, default=DEFAULT_HIDDEN_SIZE)
-parser.add_argument('--atten-heads', type=int, default=1)
+parser.add_argument('--atten-heads', type=int, default=8)
 parser.add_argument('--pe', type=str, default='add', help='concat, add')
-parser.add_argument('--nLayers', type=int, default=1)
+parser.add_argument('--nLayers', type=int, default=4)
 parser.add_argument('--dropout', type=float, default=0.1)
 parser.add_argument('--cuda', type=int, default=0)
 parser.add_argument('--train-ratio', type=float, default=0.8,
@@ -57,7 +57,7 @@ parser.add_argument('-m', '--model', default='sahp',
                     help='choose which models to train.')
 parser.add_argument('-t', '--task', type=str, default='synthetic',
                     help='task type')
-parser.add_argument('-st', '--synth_task', type=int, default=1,
+parser.add_argument('-st', '--synth_task', type=int, default=0,
                     help='task type')
 parser.add_argument('-seed', '--seed', type=int, default=42,
                     help='seed')

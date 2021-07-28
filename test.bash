@@ -1,3 +1,8 @@
 #!/bin/bash
 
-python  main_func.py  --save_model True -t retweet --lambda-l2 0.0  --early-stop-threshold 0.001 --lr 0.001
+
+for st in 0 1 2 3
+do
+python  main_func.py  --save_model True -t synthethic -e 1 -st $st
+python  main_func.py  --save_model True -t synthethic -e 1 -st $st --atten-heads 1 --nLayers 1
+done
