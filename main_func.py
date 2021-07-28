@@ -111,6 +111,7 @@ if __name__ == '__main__':
         with open(chosen_file, 'rb') as f:
             loaded_hawkes_data = pickle.load(f)
         chosen_file_name = str.split(chosen_file,"\\")[-1]
+        chosen_file_name = str.split(chosen_file_name, "/")[-1]
         print(chosen_file_name)
         # mu = loaded_hawkes_data['mu']
         # alpha = loaded_hawkes_data['alpha']
