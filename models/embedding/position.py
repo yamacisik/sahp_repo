@@ -58,3 +58,17 @@ class BiasedPositionalEmbedding(nn.Module):
         pe = torch.cat([pe_sin, pe_cos], dim=-1)
 
         return pe
+
+
+class TimetoVec(nn.Module):
+    def __init__(self, d_model):
+        super().__init__()
+
+        self.Wt = nn.Linear(1, d_model , bias=True)
+
+    def forward(self, time):
+
+        t2v = self.Wt(time)
+        t2v[:,:,1:] = torch.sin(t2v[:,:,1:])
+
+        return t2v

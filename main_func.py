@@ -13,7 +13,7 @@ from torch import autograd
 
 from utils.load_synth_data import process_loaded_sequences
 from train_functions.train_sahp import make_model, train_eval_sahp
-
+from utils.evaluation import get_intensities_from_sahp
 DEFAULT_BATCH_SIZE = 32
 DEFAULT_HIDDEN_SIZE = 16
 DEFAULT_LEARN_RATE = 5e-5
@@ -83,7 +83,8 @@ else:
 
 # ------Reproducibility-------
 
-SYNTH_DATA_FILES = glob.glob("data/simulated/*.pkl")
+SYNTH_DATA_FILES = ['data/simulated/hawkes_synthetic_random_2d_20191130-180837.pkl','data/simulated/hawkes_2d.pkl',
+                    'data/simulated/power_kernel_1d_hawkes.pkl','data/simulated/sinusodial_1d_hawkes.pkl']
 TYPE_SIZE_DICT = {'retweet': 3, 'bookorder': 8, 'meme': 5000, 'mimic': 75, 'stackOverflow': 22,
                   'synthetic': 2}
 REAL_WORLD_TASKS = list(TYPE_SIZE_DICT.keys())[:5]
@@ -121,11 +122,12 @@ if __name__ == '__main__':
         # for label, val in [("mu", mu), ("alpha", alpha), ("decay", decay), ("tmax", tmax)]:
         #     print("{:<20}{}".format(label, val))
         process_dim = loaded_hawkes_data['process_dim'] if 'process_dim' in loaded_hawkes_data.keys() else process_dim
-        seq_times, seq_types, seq_lengths, _ = process_loaded_sequences(loaded_hawkes_data, process_dim)
+        seq_times, seq_types, seq_lengths, _,seq_intensities = process_loaded_sequences(loaded_hawkes_data, process_dim)
 
         seq_times = seq_times.to(device)
         seq_types = seq_types.to(device)
         seq_lengths = seq_lengths.to(device)
+        seq_intensities = seq_intensities.to(device)
 
         total_sample_size = seq_times.size(0)
         print("Total sample size: {}".format(total_sample_size))
@@ -152,6 +154,8 @@ if __name__ == '__main__':
         test_times_tensor = seq_times[-dev_size:]
         test_seq_types = seq_types[-dev_size:]
         test_seq_lengths = seq_lengths[-dev_size:]
+        test_seq_intensities = seq_intensities[-dev_size:]
+
 
         print("No. of event tokens in test subset:", test_seq_lengths.sum())
 
@@ -169,11 +173,11 @@ if __name__ == '__main__':
         with open(test_path, 'rb') as f:
             test_hawkes_data = pickle.load(f)
 
-        train_seq_times, train_seq_types, train_seq_lengths, train_tmax = \
+        train_seq_times, train_seq_types, train_seq_lengths, train_tmax,_ = \
             process_loaded_sequences(train_hawkes_data, process_dim)
-        dev_seq_times, dev_seq_types, dev_seq_lengths, dev_tmax = \
+        dev_seq_times, dev_seq_types, dev_seq_lengths, dev_tmax,_  = \
             process_loaded_sequences(dev_hawkes_data, process_dim)
-        test_seq_times, test_seq_types, test_seq_lengths, test_tmax = \
+        test_seq_times, test_seq_types, test_seq_lengths, test_tmax,_  = \
             process_loaded_sequences(test_hawkes_data, process_dim)
 
         tmax = max([train_tmax, dev_tmax, test_tmax])
@@ -224,8 +228,14 @@ if __name__ == '__main__':
                      train_times_tensor, train_seq_types, train_seq_lengths, \
                      dev_times_tensor, dev_seq_types, dev_seq_lengths, \
                      test_times_tensor, test_seq_types, test_seq_lengths, \
-                     BATCH_SIZE, EPOCHS, use_cuda
+                     BATCH_SIZE, EPOCHS, use_cuda,test_seq_intensities
             model, rmse, micro_f1, test_loss = train_eval_sahp(params)
+        if args.task =='synthetic' and args.synth_task >=1:
+            test_data = (test_times_tensor, test_seq_types, test_seq_lengths, test_seq_intensities)
+            all_predicted_intensities, all_intensities = get_intensities_from_sahp(model, test_data)
+            RMSE_intensity = np.sqrt(np.mean(((all_intensities - all_predicted_intensities) / all_intensities) ** 2))
+            print(f'RMSE for intensity calculations:{RMSE_intensity}')
+
 
     else:
         exit()

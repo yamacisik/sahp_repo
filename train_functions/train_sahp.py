@@ -104,7 +104,7 @@ def train_eval_sahp(params):
     train_seq_times, train_seq_types, train_seq_lengths, \
     dev_seq_times, dev_seq_types, dev_seq_lengths, \
     test_seq_times, test_seq_types, test_seq_lengths, \
-    batch_size, epoch_num, use_cuda = params
+    batch_size, epoch_num, use_cuda,test_seq_intensities = params
 
     ## sequence length
     train_seq_lengths, reorder_indices_train = train_seq_lengths.sort(descending=True)
@@ -121,6 +121,7 @@ def train_eval_sahp(params):
     # # Reorder by descending sequence length
     test_seq_times = test_seq_times[reorder_indices_test]
     test_seq_types = test_seq_types[reorder_indices_test]
+    test_seq_intensities = test_seq_intensities[reorder_indices_test]
 
     max_sequence_length = max(train_seq_lengths[0], dev_seq_lengths[0], test_seq_lengths[0])
     print('max_sequence_length: {}'.format(max_sequence_length))
