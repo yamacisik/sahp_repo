@@ -34,19 +34,19 @@ def process_loaded_sequences(loaded_hawkes_data: dict, process_dim: int) -> Tupl
 
     event_times_list = loaded_hawkes_data['timestamps']
     event_types_list = loaded_hawkes_data['types']
-    event_intensities_list = loaded_hawkes_data['intensities'] if 'intensities' in loaded_hawkes_data.keys() else []
+    # event_intensities_list = loaded_hawkes_data['intensities'] if 'intensities' in loaded_hawkes_data.keys() else []
 
     event_times_list = [torch.from_numpy(e) for e in event_times_list]
     event_types_list = [torch.from_numpy(e) for e in event_types_list]
 
-    if len(event_intensities_list[0])>1:
-        all_intensities = []
-        for i in range(len(event_intensities_list[0])):
-            current_node_intensity = [torch.from_numpy(e[i]) for e in event_intensities_list]
-            all_intensities.append(current_node_intensity)
-        event_intensities_list = all_intensities
-    else:
-        event_intensities_list = [torch.from_numpy(e) for e in event_intensities_list]
+    # if len(event_intensities_list[0])>1:
+    #     all_intensities = []
+    #     for i in range(len(event_intensities_list[0])):
+    #         current_node_intensity = [torch.from_numpy(e[i]) for e in event_intensities_list]
+    #         all_intensities.append(current_node_intensity)
+    #     event_intensities_list = all_intensities
+    # else:
+    #     event_intensities_list = [torch.from_numpy(e) for e in event_intensities_list]
 
     tmax = 0
     for tsr in event_times_list:
@@ -66,7 +66,7 @@ def process_loaded_sequences(loaded_hawkes_data: dict, process_dim: int) -> Tupl
         (process_dim*torch.ones_like(seq_types[:, :1]), seq_types), dim=1).long()# convert from floattensor to longtensor
 
 
-    return seq_times, seq_types, seq_lengths, tmax,event_intensities_list
+    return seq_times, seq_types, seq_lengths, tmax
 
 
 def one_hot_embedding(labels: Tensor, num_classes: int) -> torch.Tensor:

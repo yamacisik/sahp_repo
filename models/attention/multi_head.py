@@ -18,6 +18,7 @@ class MultiHeadedAttention(nn.Module):
         self.linear_layers = nn.ModuleList([nn.Linear(d_model, d_model, bias=True) for _ in range(3)])
         self.output_linear = nn.Linear(d_model, d_model, bias=True)
         self.attention = Attention()
+        self.scores = None
 
         self.dropout = nn.Dropout(p=dropout)
 
@@ -39,5 +40,5 @@ class MultiHeadedAttention(nn.Module):
 
         # 3) "Concat" using a view and apply a final linear.
         x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.h * self.d_k)
-
+        self.scores = attn
         return self.output_linear(x)

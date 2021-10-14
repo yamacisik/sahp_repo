@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 from torch import autograd
+import time
 
 import numpy as np
 import random
@@ -104,7 +105,7 @@ def train_eval_sahp(params):
     train_seq_times, train_seq_types, train_seq_lengths, \
     dev_seq_times, dev_seq_types, dev_seq_lengths, \
     test_seq_times, test_seq_types, test_seq_lengths, \
-    batch_size, epoch_num, use_cuda,test_seq_intensities = params
+    batch_size, epoch_num, use_cuda = params
 
     ## sequence length
     train_seq_lengths, reorder_indices_train = train_seq_lengths.sort(descending=True)
@@ -121,7 +122,7 @@ def train_eval_sahp(params):
     # # Reorder by descending sequence length
     test_seq_times = test_seq_times[reorder_indices_test]
     test_seq_types = test_seq_types[reorder_indices_test]
-    test_seq_intensities = test_seq_intensities[reorder_indices_test]
+    # test_seq_intensities = test_seq_intensities[reorder_indices_test]
 
     max_sequence_length = max(train_seq_lengths[0], dev_seq_lengths[0], test_seq_lengths[0])
     print('max_sequence_length: {}'.format(max_sequence_length))
@@ -154,6 +155,7 @@ def train_eval_sahp(params):
     random.shuffle(random_seeds)
 
     model.train()
+    start_time = time.time()
     for epoch in range(epoch_num):
         epoch_train_loss = 0.0
         print('Epoch {} starts '.format(epoch))
@@ -191,8 +193,12 @@ def train_eval_sahp(params):
             #     prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_seq_types, test_size, tmax)
             break
         train_event_num = torch.sum(train_seq_lengths).float()
+
+        total_time = time.time() - start_time
+        average_time = total_time / (epoch + 1)
         print('---\nEpoch.{} Training set\nTrain Negative Log-Likelihood per event: {:5f} nats\n' \
               .format(epoch, epoch_train_loss / train_event_num))
+        print(f'Average Time per Epoch:{average_time}\n')
 
         ## dev
         dev_event_num, epoch_dev_loss = eval_sahp(batch_size, de_loop_range, dev_seq_lengths, dev_seq_times,
@@ -203,8 +209,8 @@ def train_eval_sahp(params):
         ## test
         test_event_num, epoch_test_loss = eval_sahp(batch_size, test_loop_range, test_seq_lengths, test_seq_times,
                                                     test_seq_types, model, device, args.lambda_l2)
-        print('Epoch.{} Test set\nTest Negative Likelihood per event: {:5f} nats.\n'. \
-              format(epoch, epoch_test_loss / test_event_num))
+        # print('Epoch.{} Test set\nTest Negative Likelihood per event: {:5f} nats.\n'. \
+        #       format(epoch, epoch_test_loss / test_event_num))
 
         ## early stopping
         gap = epoch_dev_loss / dev_event_num - last_dev_loss
@@ -245,13 +251,13 @@ def prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_
         types_real = [types_rl.item() for types_rl in types_real]
         types_estimates = [types_esti.item() for types_esti in types_estimates]
 
-    incr_reals += 1e-5
-    incr_errors = ((incr_estimates - incr_reals) / incr_reals) ** 2  # , normalization, np.abs,
+    # incr_reals += 1e-5
+    incr_errors = ((incr_estimates - incr_reals)) ** 2  # , normalization, np.abs,
     avg_rmse = np.sqrt(np.mean(incr_errors), dtype=np.float64)
     print("rmse", avg_rmse)
     mse_var = np.var(incr_errors, dtype=np.float64)
 
-    delta_meth_stderr = 1 / test_size * mse_var / (4 * avg_rmse)
+    # delta_meth_stderr = 1 / test_size * mse_var / (4 * avg_rmse)
 
     from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
     types_predict_score = f1_score(types_real, types_estimates, average='micro')  # preferable in class imbalance

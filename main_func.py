@@ -29,7 +29,7 @@ parser.add_argument('--lr', default=DEFAULT_LEARN_RATE, type=float,
 parser.add_argument('--hidden', type=int,
                     dest='hidden_size', default=DEFAULT_HIDDEN_SIZE,
                     help='number of hidden units. (default: {})'.format(DEFAULT_HIDDEN_SIZE))
-parser.add_argument('--d-model', type=int, default=DEFAULT_HIDDEN_SIZE)
+parser.add_argument('--d-model', type=int, default=16)
 parser.add_argument('--atten-heads', type=int, default=8)
 parser.add_argument('--pe', type=str, default='add', help='concat, add')
 parser.add_argument('--nLayers', type=int, default=4)
@@ -41,7 +41,7 @@ parser.add_argument('--lambda-l2', type=float, default=3e-4,
                     help='regularization loss.')
 parser.add_argument('--dev-ratio', type=float, default=0.1,
                     help='override the size of the dev dataset.')
-parser.add_argument('--early-stop-threshold', type=float, default=1e-2,
+parser.add_argument('-es','--early-stop-threshold', type=float, default=1e-3,
                     help='early_stop_threshold')
 parser.add_argument('--log-dir', type=str,
                     dest='log_dir', default='logs',
@@ -75,8 +75,8 @@ if use_cuda:
     # torch.set_default_tensor_type(cuda_tensor)
     torch.cuda.manual_seed(seed=args.seed)
     torch.cuda.manual_seed_all(args.seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    # torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
 else:
     # torch.set_default_tensor_type(cpu_tensor)
     device = 'cpu'
@@ -122,12 +122,12 @@ if __name__ == '__main__':
         # for label, val in [("mu", mu), ("alpha", alpha), ("decay", decay), ("tmax", tmax)]:
         #     print("{:<20}{}".format(label, val))
         process_dim = loaded_hawkes_data['process_dim'] if 'process_dim' in loaded_hawkes_data.keys() else process_dim
-        seq_times, seq_types, seq_lengths, _,seq_intensities = process_loaded_sequences(loaded_hawkes_data, process_dim)
+        seq_times, seq_types, seq_lengths, _ = process_loaded_sequences(loaded_hawkes_data, process_dim)
 
         seq_times = seq_times.to(device)
         seq_types = seq_types.to(device)
         seq_lengths = seq_lengths.to(device)
-        seq_intensities = seq_intensities.to(device)
+        # seq_intensities = seq_intensities.to(device)
 
         total_sample_size = seq_times.size(0)
         print("Total sample size: {}".format(total_sample_size))
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         test_times_tensor = seq_times[-dev_size:]
         test_seq_types = seq_types[-dev_size:]
         test_seq_lengths = seq_lengths[-dev_size:]
-        test_seq_intensities = seq_intensities[-dev_size:]
+        # test_seq_intensities = seq_intensities[-dev_size:]
 
 
         print("No. of event tokens in test subset:", test_seq_lengths.sum())
@@ -173,11 +173,11 @@ if __name__ == '__main__':
         with open(test_path, 'rb') as f:
             test_hawkes_data = pickle.load(f)
 
-        train_seq_times, train_seq_types, train_seq_lengths, train_tmax,_ = \
+        train_seq_times, train_seq_types, train_seq_lengths, train_tmax = \
             process_loaded_sequences(train_hawkes_data, process_dim)
-        dev_seq_times, dev_seq_types, dev_seq_lengths, dev_tmax,_  = \
+        dev_seq_times, dev_seq_types, dev_seq_lengths, dev_tmax  = \
             process_loaded_sequences(dev_hawkes_data, process_dim)
-        test_seq_times, test_seq_types, test_seq_lengths, test_tmax,_  = \
+        test_seq_times, test_seq_types, test_seq_lengths, test_tmax = \
             process_loaded_sequences(test_hawkes_data, process_dim)
 
         tmax = max([train_tmax, dev_tmax, test_tmax])
@@ -223,18 +223,18 @@ if __name__ == '__main__':
 
     model = None
     if MODEL_TOKEN == 'sahp':
-        with autograd.detect_anomaly():
-            params = args, process_dim, device, tmax, \
-                     train_times_tensor, train_seq_types, train_seq_lengths, \
-                     dev_times_tensor, dev_seq_types, dev_seq_lengths, \
-                     test_times_tensor, test_seq_types, test_seq_lengths, \
-                     BATCH_SIZE, EPOCHS, use_cuda,test_seq_intensities
-            model, rmse, micro_f1, test_loss = train_eval_sahp(params)
-        if args.task =='synthetic' and args.synth_task >=1:
-            test_data = (test_times_tensor, test_seq_types, test_seq_lengths, test_seq_intensities)
-            all_predicted_intensities, all_intensities = get_intensities_from_sahp(model, test_data)
-            RMSE_intensity = np.sqrt(np.mean(((all_intensities - all_predicted_intensities) / all_intensities) ** 2))
-            print(f'RMSE for intensity calculations:{RMSE_intensity}')
+        # with autograd.detect_anomaly():
+        params = args, process_dim, device, tmax, \
+                 train_times_tensor, train_seq_types, train_seq_lengths, \
+                 dev_times_tensor, dev_seq_types, dev_seq_lengths, \
+                 test_times_tensor, test_seq_types, test_seq_lengths, \
+                 BATCH_SIZE, EPOCHS, use_cuda
+        model, rmse, micro_f1, test_loss = train_eval_sahp(params)
+    # if args.task =='synthetic' and args.synth_task >=1:
+    #     test_data = (test_times_tensor, test_seq_types, test_seq_lengths)
+        # all_predicted_intensities, all_intensities = get_intensities_from_sahp(model, test_data)
+        # RMSE_intensity = np.sqrt(np.mean(((all_intensities - all_predicted_intensities) / all_intensities) ** 2))
+        # print(f'RMSE for intensity calculations:{RMSE_intensity}')
 
 
     else:
@@ -249,7 +249,7 @@ if __name__ == '__main__':
 
     if args.save_model:
         # Model file dump
-        SAVED_MODELS_PATH = os.path.abspath('saved_models')
+        SAVED_MODELS_PATH = os.path.abspath('saved_models/'+data_set_name)
         os.makedirs(SAVED_MODELS_PATH, exist_ok=True)
         # print("Saved models directory: {}".format(SAVED_MODELS_PATH))
 
