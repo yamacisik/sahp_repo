@@ -155,8 +155,9 @@ def train_eval_sahp(params):
     random.shuffle(random_seeds)
 
     model.train()
-    start_time = time.time()
+    times = []
     for epoch in range(epoch_num):
+        start_time = time.time()
         epoch_train_loss = 0.0
         print('Epoch {} starts '.format(epoch))
 
@@ -194,11 +195,11 @@ def train_eval_sahp(params):
             break
         train_event_num = torch.sum(train_seq_lengths).float()
 
-        total_time = time.time() - start_time
-        average_time = total_time / (epoch + 1)
+        times.append(time.time() - start_time)
+
         print('---\nEpoch.{} Training set\nTrain Negative Log-Likelihood per event: {:5f} nats\n' \
               .format(epoch, epoch_train_loss / train_event_num))
-        print(f'Average Time per Epoch:{average_time}\n')
+        print(f'Average Time per Epoch:{np.mean(times)}\n')
 
         ## dev
         dev_event_num, epoch_dev_loss = eval_sahp(batch_size, de_loop_range, dev_seq_lengths, dev_seq_times,
@@ -230,8 +231,8 @@ def train_eval_sahp(params):
         prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_seq_types, test_size, tmax)
     test_event_num, epoch_test_loss = eval_sahp(batch_size, test_loop_range, test_seq_lengths, test_seq_times,
                                                 test_seq_types, model, device, args.lambda_l2)
-    final_test_loss = epoch_test_loss / test_event_num
-    return model, avg_rmse, types_predict_score, final_test_loss
+    final_test_loss = last_dev_loss
+    return model, avg_rmse, types_predict_score, final_test_loss,np.mean(times)
 
 
 def prediction_evaluation(device, model, test_seq_lengths, test_seq_times, test_seq_types, test_size, tmax):

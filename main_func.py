@@ -229,7 +229,7 @@ if __name__ == '__main__':
                  dev_times_tensor, dev_seq_types, dev_seq_lengths, \
                  test_times_tensor, test_seq_types, test_seq_lengths, \
                  BATCH_SIZE, EPOCHS, use_cuda
-        model, rmse, micro_f1, test_loss = train_eval_sahp(params)
+        model, rmse, micro_f1, dev_loss,average_time_per_epoch = train_eval_sahp(params)
     # if args.task =='synthetic' and args.synth_task >=1:
     #     test_data = (test_times_tensor, test_seq_types, test_seq_lengths)
         # all_predicted_intensities, all_intensities = get_intensities_from_sahp(model, test_data)
@@ -241,7 +241,7 @@ if __name__ == '__main__':
         exit()
     data_set_name = str(args.task) if args.task not in SYNTHETIC_TASKS else chosen_file_name
     results_to_record = [data_set_name, str(args.lr), str(args.early_stop_threshold),
-                         str(args.lambda_l2), str(test_loss.item()), str(rmse), str(micro_f1)]
+                         str(args.lambda_l2), str(dev_loss.item()), str(rmse), str(micro_f1),str(average_time_per_epoch)]
 
     with open(r'results.csv', 'a', newline='') as f:
         writer = csv.writer(f)

@@ -107,7 +107,7 @@ def predict_from_hidden(model, h_t_vals, dt_vals, next_dt, next_type, plot, hmax
     if print_info:
         print("type probabilities:", estimate_type_prob)
     estimate_type = torch.argmax(estimate_type_prob)
-    next_dt += 1e-5
+    # next_dt += 1e-5
     # error_dt = ((estimate_dt - next_dt)/next_dt)** 2#
     error_dt = ((estimate_dt - next_dt))** 2#, normalization, np.abs,
 
