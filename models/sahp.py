@@ -113,9 +113,8 @@ class SAHP(nn.Module):
         #     intens_at_evs, padding_value=1.0, batch_first=True)  # pad with 0 to get rid of the non-events, log1=0
 
         log_intensities = intens_at_evs.log()  # log intensities
-        log_intensities = log_intensities * seq_onehot_types[:, 1:, :].sum(dim=-1).unsqueeze(-1)
-
         seq_mask = seq_onehot_types[:, 1:]
+
         log_sum = (log_intensities * seq_mask).sum(dim=(2, 1))  # shape batch
 
         taus = torch.rand(n_batch, n_times, 1, n_mc_samples).to(device)  # self.process_dim replaced 1
